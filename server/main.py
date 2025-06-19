@@ -12,6 +12,7 @@ from server.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, AP
 from server.Kdb import *
 from server.class_and_def import *
 from openai import *
+from server.quest_for_gpt import *
 app = FastAPI()
 two_step_auth = TwoStepAuth()
 current_phone = None
@@ -176,15 +177,27 @@ def delete_subject(
     return {"message": "Subject deleted successfully"}
 
 @app.get("/subjects/", response_model=List[Subject])
-def get_user_subjects(auth_token: str):
+def get_user_subjects(
+    auth_token: str,
+    db_session_users: Session = Depends(get_db)
+):
     if auth_token != "zxc":
-        raise HTTPException(status_code=401, detail="Invalid authentication")
+        raise HTTPException(status_code=401, detail="Неверная аутентификация")
 
-    return [
-        {"id": 1, "name": "Математика"},
-        {"id": 2, "name": "Физика"}
-    ]
+    phone = "1234567890"
 
+    with SubjectsSessionLocal() as sdb:
+        user_subjects_list = sdb.execute(
+            db.select(user_subjects.c.subject_name)
+            .where(user_subjects.c.user_phone == phone)
+        ).fetchall()
+        
+        subjects = [
+            {"id": idx+1, "name": subj.subject_name} 
+            for idx, subj in enumerate(user_subjects_list)
+        ]
+        
+        return subjects
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat_with_ai(
@@ -194,7 +207,6 @@ async def chat_with_ai(
 ):
     if auth_token != "zxc":
         raise HTTPException(status_code=401, detail="Неверная аутентификация")
-    
     input_data = {
         "is_sync": chat_request.is_sync,
         "messages": [
