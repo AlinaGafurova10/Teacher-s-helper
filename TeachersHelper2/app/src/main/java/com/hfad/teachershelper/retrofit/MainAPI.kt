@@ -9,29 +9,10 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface MainAPI {
-//    @GET("subjects/{id}")
-//    suspend fun getSubjectById(@Path("id") id: Int): Subject
 //
-//    @GET("subjects/")
-//    suspend fun getAllItems(): List<Subject>
-//    @POST("/signup")
-//    suspend fun sendLoginPaorol(@Body loginParol: Login_parol): ResponseData
-//
-//    @FormUrlEncoded
-//    @POST("token/init")
-//    fun sendPhone(
-//        @Field("phone") phone: String
-//    ): Call<AuthResponse>
-//
-//    // Второй запрос — отправка пароля и временного токена
-//    @FormUrlEncoded
-//    @POST("token/complete")
-//    fun completeLogin(
-//        @Field("password") password: String,
-//        @Field("temp_token") tempToken: String
-//    ): Call<AuthResponse>
 
     @FormUrlEncoded
     @POST("signup")
@@ -53,6 +34,16 @@ interface MainAPI {
     fun parol(
         @Field("password") password: String
     ):Call<AuthResponse>
+
+    @POST("/chat")
+    suspend fun sendMessage(
+        @Query("auth_token") token: String,
+        @Body messageRequest: MessageRequest
+    ): MessageResponse
+
+    companion object {
+        const val BASE_URL = "http://10.0.2.2:8000/"
+    }
 
 
 //    @FormUrlEncoded

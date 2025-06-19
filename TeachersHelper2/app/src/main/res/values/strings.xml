@@ -47,6 +47,7 @@
     <string name="registration">Регистрация</string>
     <string name="parol_padtverditie">Подтвердите пароль</string>
     <string name="RoleTeacherOrNot">Роль</string>
+    <string name="Send">Отправить</string>
     <string-array name="Choose_subject_spinner_text">
         <item>Математика</item>
         <item>Русский язык</item>
