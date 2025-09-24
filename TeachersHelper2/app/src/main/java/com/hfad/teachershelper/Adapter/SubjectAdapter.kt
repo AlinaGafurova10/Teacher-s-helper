@@ -12,25 +12,27 @@ import com.hfad.teachershelper.R
 import com.hfad.teachershelper.retrofit.Subject
 
 
-class SubjectAdapter : ListAdapter<Subject, SubjectAdapter.Holder>(SubjectDiffCallback()) {
+class SubjectAdapter(
+    private val onItemClick: (Subject) -> Unit
+) : ListAdapter<Subject, SubjectAdapter.Holder>(SubjectDiffCallback()) {
 
     class Holder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val subjectButton: Button = itemView.findViewById(R.id.button)
 
-        fun bind(subject: Subject) {
+        fun bind(subject: Subject, onClick: (Subject) -> Unit) {
             subjectButton.text = subject.name
-            // Можно добавить другие привязки элементов здесь
+            subjectButton.setOnClickListener { onClick(subject) }
         }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
         val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.list_item, parent, false)
+            .inflate(R.layout.item_subjects, parent, false)
         return Holder(view)
     }
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
-        holder.bind(getItem(position))
+        holder.bind(getItem(position), onItemClick)
     }
 }
 
@@ -43,6 +45,37 @@ class SubjectDiffCallback : DiffUtil.ItemCallback<Subject>() {
         return oldItem == newItem
     }
 }
+//class SubjectAdapter : ListAdapter<Subject, SubjectAdapter.Holder>(SubjectDiffCallback()) {
+//
+//    class Holder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+//        private val subjectButton: Button = itemView.findViewById(R.id.button)
+//
+//        fun bind(subject: Subject) {
+//            subjectButton.text = subject.name
+//            // Можно добавить другие привязки элементов здесь
+//        }
+//    }
+//
+//    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
+//        val view = LayoutInflater.from(parent.context)
+//            .inflate(R.layout.item_subjects, parent, false)
+//        return Holder(view)
+//    }
+//
+//    override fun onBindViewHolder(holder: Holder, position: Int) {
+//        holder.bind(getItem(position))
+//    }
+//}
+//
+//class SubjectDiffCallback : DiffUtil.ItemCallback<Subject>() {
+//    override fun areItemsTheSame(oldItem: Subject, newItem: Subject): Boolean {
+//        return oldItem.id == newItem.id
+//    }
+//
+//    override fun areContentsTheSame(oldItem: Subject, newItem: Subject): Boolean {
+//        return oldItem == newItem
+//    }
+//}
 
 //class SubjectAdapter : ListAdapter<Subject, SubjectAdapter.Holder>(Comparator()) {
 //
@@ -75,7 +108,7 @@ class SubjectDiffCallback : DiffUtil.ItemCallback<Subject>() {
 //
 ////    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
 ////        val view = LayoutInflater.from(parent.context)
-////            .inflate(R.layout.list_item, parent, false)
+////            .inflate(R.layout.item_subjects, parent, false)
 ////        return Holder(view)
 ////
 ////    }

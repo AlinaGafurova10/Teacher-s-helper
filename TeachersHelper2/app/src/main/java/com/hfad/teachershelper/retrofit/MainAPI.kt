@@ -62,7 +62,13 @@ interface MainAPI {
     fun getUser(@Header("Authorization") token: String): Call<User>
 
     @GET("subjects/")
-    fun getSubjects(@Header("Authorization") token: String): Call<List<Subject>>
+    suspend fun getSubjects(@Query("auth_token") token: String): Response<List<Subject>>
+
+//    @GET("subjects/")
+//    fun getSubjects(@Query("auth_token") token: String): Call<List<Subject>>
+
+//    @GET("subjects/")
+//    fun getSubjects(@Header("Authorization") token: String): Call<List<Subject>>
 
 //    @FormUrlEncoded
 //    @POST("token/init")
