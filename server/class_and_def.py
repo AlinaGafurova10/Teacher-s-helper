@@ -5,8 +5,8 @@ from passlib.context import CryptContext
 from typing import Optional
 import sqlalchemy as db
 from sqlalchemy.orm import Session
-from server.config import SECRET_KEY, ALGORITHM
-from server.Kdb import *
+from config import SECRET_KEY, ALGORITHM
+from Kdb import *
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

@@ -8,11 +8,12 @@ from typing import Optional, List, Dict, Any
 import sqlalchemy as db
 from sqlalchemy.orm import sessionmaker, Session
 import requests
-from server.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, API_KEY
-from server.Kdb import *
-from server.class_and_def import *
-from openai import *
-from server.quest_for_gpt import *
+from config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, API_KEY
+from Kdb import *
+from class_and_def import *
+#from openai import *
+from quest_for_gpt import *
+
 app = FastAPI()
 two_step_auth = TwoStepAuth()
 current_phone = None
@@ -207,6 +208,9 @@ async def chat_with_ai(
 ):
     if auth_token != "zxc":
         raise HTTPException(status_code=401, detail="Неверная аутентификация")
+
+
+    '''''
     input_data = {
         "is_sync": chat_request.is_sync,
         "messages": [
@@ -255,6 +259,6 @@ async def chat_with_ai(
             status_code=500,
             detail="Внутренняя ошибка сервера"
         )
-    
+    '''
 # Написать эндпойнт для приема запроса пользователя и возвращение json файла 
 # Эндпойнт получает файл и передаёт его, обмениваясь с generate_contents.py

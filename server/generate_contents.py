@@ -6,12 +6,13 @@ import sys
 from requests import post
 from textwrap import fill
 from quest_for_gpt import *
-
+from _main import *
 parser = argparse.ArgumentParser()
 
 #file = open(direct)
 file = None
-
+ask = ChatRequest
+print(ask)
 ARGS = [
     ('-r', '--role',        str,   role, 'Role of generator'),
     ('-a', '--ask',         str,   ask,      'Text of question'),
