@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar_details"
+        android:layout_width="match_parent"
+        android:layout_height="75dp"
+        android:layout_marginTop="18dp"
+        android:background="#FFB7CD"
+        android:minHeight="?attr/actionBarSize"
+        android:theme="?attr/actionBarTheme"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:ignore="ExtraText,MissingConstraints">
+
+        <ImageButton
+            android:id="@+id/back_details_to_themes"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="#00FFFFFF"
+            android:contentDescription="back"
+            android:src="?attr/homeAsUpIndicator"
+            app:tint="#000000"
+            tools:layout_editor_absoluteX="30dp"
+            tools:layout_editor_absoluteY="16dp" />
+
+
+        <TextView
+            android:id="@+id/text_details_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="right"
+            android:text="@string/Reading_this"
+            android:textColor="@color/black"
+            android:layout_marginRight="15dp"
+            android:textSize="30sp"
+            tools:layout_editor_absoluteX="16dp"
+            tools:layout_editor_absoluteY="28dp" />
+
+    </androidx.appcompat.widget.Toolbar>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <TextView
+            android:id="@+id/text_topic_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:lineSpacingExtra="4dp"
+            android:padding="8dp" />
+    </ScrollView>
+
+    <Button
+        android:id="@+id/btn_quiz"
+        android:layout_width="358dp"
+        android:layout_height="wrap_content"
+        android:text="@string/check__yourself"
+        android:layout_marginTop="16dp"
+        android:textSize="18sp"
+        android:layout_gravity="center_horizontal"
+        android:textColor="@color/black"
+        app:backgroundTint="#FFE9EF" />
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/nav_view_details"
+        android:layout_width="match_parent"
+        android:layout_height="90dp"
+        android:layout_marginBottom="25dp"
+        android:background="#FFB7CD"
+        app:elevation="8dp"
+        app:itemPaddingBottom="10dp"
+        app:itemPaddingTop="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        tools:ignore="ExtraText">
+
+        <ImageButton
+            android:id="@+id/home_details"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginStart="-139dp"
+            android:layout_marginLeft="-139dp"
+            android:layout_marginTop="15dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/home"
+            android:src="@drawable/icon_home"
+            app:strokeColor="#000000"
+            tools:ignore="ExtraText" />
+
+        <ImageButton
+            android:id="@+id/search_details"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginStart="0dp"
+            android:layout_marginLeft="0dp"
+            android:layout_marginTop="15dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/search"
+            android:src="@drawable/icon__search"
+            app:strokeColor="#000000"
+            tools:ignore="ExtraText" />
+
+        <ImageButton
+            android:id="@+id/flow_details"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginStart="139dp"
+            android:layout_marginLeft="139dp"
+            android:layout_marginTop="15dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/settings"
+            android:src="@drawable/icon_flow"
+            app:strokeColor="#000000"
+            tools:ignore="ExtraText" />
+
+    </com.google.android.material.bottomnavigation.BottomNavigationView>
+
+</LinearLayout>

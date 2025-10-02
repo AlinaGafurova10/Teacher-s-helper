@@ -48,6 +48,11 @@
     <string name="parol_padtverditie">Подтвердите пароль</string>
     <string name="RoleTeacherOrNot">Роль</string>
     <string name="Send">Отправить</string>
+    <string name="theme_of_subjects">Темы по предмету</string>
+    <string name="check__yourself">Проверь себя</string>
+    <string name="Text">Текст</string>
+    <string name="Themes">Темы</string>
+    <string name="Reading_this">Прочитай</string>
     <string-array name="Choose_subject_spinner_text">
         <item>Математика</item>
         <item>Русский язык</item>

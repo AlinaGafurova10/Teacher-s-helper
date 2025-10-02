@@ -9,15 +9,21 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.Toast
-//import androidx.databinding.DataBindingUtil.setContentView
 import androidx.navigation.findNavController
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.hfad.teachershelper.Adapter.SubjectAdapter
 import com.hfad.teachershelper.retrofit.MainAPI
+import com.hfad.teachershelper.retrofit.Quiz
+import com.hfad.teachershelper.retrofit.Subject
+import com.hfad.teachershelper.retrofit.Topic
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
 import retrofit2.Retrofit
 //import com.hfad.teachershelper.databinding.FragmentSubjectsBinding
 import retrofit2.converter.gson.GsonConverterFactory
@@ -28,7 +34,7 @@ class SubjectsFragment : Fragment() {
 
     private lateinit var adapter: SubjectAdapter
     private lateinit var recyclerView: RecyclerView
-    private lateinit var mainAPI: MainAPI
+    private var mainAPI: MainAPI? = null
 
     private fun runOnUiThread(action: () -> Unit) {
         if (!isAdded) return
@@ -51,8 +57,15 @@ class SubjectsFragment : Fragment() {
 
         // Настройка RecyclerView
         adapter = SubjectAdapter { subject ->
-            Toast.makeText(context, "Предмет: ${subject.name}", Toast.LENGTH_SHORT).show()
-            // navigateTo(R.id.action_subjectsFragment_to_topicsFragment)
+            val bundle = Bundle()
+            bundle.putInt("subjectId", subject.id)  // ← ключ "subjectId"
+
+            findNavController().navigate(
+                R.id.action_subjectsFragment_to_topicsFragment,
+                bundle
+            )
+//            Toast.makeText(context, "Предмет: ${subject.name}", Toast.LENGTH_SHORT).show()
+//            // navigateTo(R.id.action_subjectsFragment_to_topicsFragment)
         }
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
@@ -63,16 +76,18 @@ class SubjectsFragment : Fragment() {
         settingsButton.setOnClickListener { navigateTo(R.id.action_subjectsFragment_to_settingsFragment) }
         searchButton.setOnClickListener { navigateTo(R.id.action_subjectsFragment_to_searchFragment) }
 
-        // Настройка Retrofit
-        val retrofit = Retrofit.Builder()
-            .baseUrl("http://10.0.2.2:8000/") // Локальный сервер (Android Emulator)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
+//        // Настройка Retrofit
+//        val retrofit = Retrofit.Builder()
+//            .baseUrl("http://10.0.2.2:8000/") // Локальный сервер (Android Emulator)
+//            .addConverterFactory(GsonConverterFactory.create())
+//            .build() -> код ретрофит когда сервер будет сделан раскомментить
 
-        mainAPI = retrofit.create(MainAPI::class.java)
+//        mainAPI = retrofit.create(MainAPI::class.java) -> код ретрофит когда сервер будет сделан раскомментить
 
         // Загрузка предметов
-        loadSubjects()
+//        loadSubjects() -> код ретрофит когда сервер будет сделан раскомментить
+
+        loadSubjectsFromJson()
 
         return view
     }
@@ -81,324 +96,132 @@ class SubjectsFragment : Fragment() {
         view?.findNavController()?.navigate(actionId)
     }
 
-    private fun getToken(): String? {
-        return context?.getSharedPreferences("auth", Context.MODE_PRIVATE)
-            ?.getString("auth_token", null)
-    }
-
 //    private fun getToken(): String? {
-//        return context?.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+//        return context?.getSharedPreferences("auth", Context.MODE_PRIVATE)
 //            ?.getString("auth_token", null)
 //    }
 
 
-    private fun loadSubjects() {
-        val token = getToken()
-        Log.d("SUBJECTS", "Полученный токен: $token")
+    private fun showError(message: String) {
+        Toast.makeText(context, "Ошибка: $message", Toast.LENGTH_LONG).show()
+    }
 
-        if (token == null) {
-            runOnUiThread {
-                showError("Токен не найден. Нужна авторизация.")
+    private fun loadSubjectsFromJson() {
+        try {
+            // Читаем JSON из ресурсов
+            val inputStream = requireContext().resources.openRawResource(R.raw.data)
+            val jsonString = inputStream.bufferedReader().use { it.readText() }
+            inputStream.close()
+
+            // Парсим JSON вручную или через Gson
+            val jsonObject = JSONObject(jsonString)
+            val subjectsArray = jsonObject.getJSONArray("subjects")
+
+            val subjects = mutableListOf<Subject>()
+
+            for (i in 0 until subjectsArray.length()) {
+                val obj = subjectsArray.getJSONObject(i)
+                val id = obj.getInt("id")
+                val name = obj.getString("name")
+                val topicsArray = obj.getJSONArray("topics")  // из JSONObject предмета
+                val topics: List<Topic> = parseTopics(topicsArray)
+
+                // Темы пока не нужны здесь, но можем их пропустить
+                subjects.add(
+                    Subject(
+                        id,
+                        name,
+                        topics
+                    )
+                ) // Предполагаем, что у тебя есть data class Subject(id: Int, name: String)
             }
-            return
-        }
 
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                Log.d("SUBJECTS", "Отправляем запрос к серверу...")
-                val response = mainAPI.getSubjects(token)
+            // Обновляем адаптер в UI потоке
+            runOnUiThread {
+                adapter.submitList(subjects)
+            }
 
-                Log.d("SUBJECTS", "Код ответа: ${response.code()}")
-                Log.d("SUBJECTS", "Тело ответа: ${response.body()}")
-
-                if (response.isSuccessful) {
-                    val subjects = response.body() ?: emptyList()
-                    Log.d("SUBJECTS", "Загружено предметов: ${subjects.size}")
-
-                    for (subject in subjects) {
-                        Log.d("SUBJECTS", "Предмет: id=${subject.id}, name='${subject.name}'")
-                    }
-
-                    runOnUiThread {
-                        adapter.submitList(subjects)
-                    }
-                } else {
-                    runOnUiThread {
-                        showError("Ошибка сервера: ${response.code()}")
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("SUBJECTS_ERROR", "Исключение", e)
-                runOnUiThread {
-                    showError("Ошибка сети: ${e.message}")
-                }
+        } catch (e: Exception) {
+            Log.e("JSON_ERROR", "Ошибка при чтении JSON", e)
+            runOnUiThread {
+                showError("Ошибка загрузки данных: ${e.message}")
             }
         }
     }
 
+    private fun parseTopics(topicsArray: JSONArray): List<Topic> {
+        val topics = mutableListOf<Topic>()
 
+        for (i in 0 until topicsArray.length()) {
+            val topicObj = topicsArray.getJSONObject(i)
+
+            val id = topicObj.getInt("id")
+            val title = topicObj.getString("title")
+            val content = topicObj.getString("content")
+
+            val quizObj = topicObj.getJSONObject("quiz")
+            val question = quizObj.getString("question")
+            val correctAnswerIndex = quizObj.getInt("correctAnswerIndex")
+
+            // Парсим массив options
+            val optionsArray = quizObj.getJSONArray("options")
+            val options = mutableListOf<String>()
+            for (j in 0 until optionsArray.length()) {
+                options.add(optionsArray.getString(j))
+            }
+
+            val quiz = Quiz(question, options, correctAnswerIndex)
+            val topic = Topic(id, title, content, quiz)
+            topics.add(topic)
+        }
+
+        return topics
+    }
+}
 //    private fun loadSubjects() {
-//        val token = getToken() ?: run {
-//            showError("Необходима авторизация")
+//        val token = getToken()
+//        Log.d("SUBJECTS", "Полученный токен: $token")
+//
+//        if (token == null) {
+//            runOnUiThread {
+//                showError("Токен не найден. Нужна авторизация.")
+//            }
 //            return
 //        }
 //
 //        CoroutineScope(Dispatchers.IO).launch {
 //            try {
-//                val call = mainAPI.getSubjects(token)
-//                val response = call.execute() // <-- execute() здесь обязателен
+//                Log.d("SUBJECTS", "Отправляем запрос к серверу...")
+//                val response = mainAPI.getSubjects(token)
+//
+//                Log.d("SUBJECTS", "Код ответа: ${response.code()}")
+//                Log.d("SUBJECTS", "Тело ответа: ${response.body()}")
 //
 //                if (response.isSuccessful) {
 //                    val subjects = response.body() ?: emptyList()
+//                    Log.d("SUBJECTS", "Загружено предметов: ${subjects.size}")
+//
+//                    for (subject in subjects) {
+//                        Log.d("SUBJECTS", "Предмет: id=${subject.id}, name='${subject.name}'")
+//                    }
+//
 //                    runOnUiThread {
 //                        adapter.submitList(subjects)
 //                    }
 //                } else {
 //                    runOnUiThread {
-//                        showError("Ошибка: ${response.code()}")
+//                        showError("Ошибка сервера: ${response.code()}")
 //                    }
 //                }
 //            } catch (e: Exception) {
-//                e.printStackTrace()
+//                Log.e("SUBJECTS_ERROR", "Исключение", e)
 //                runOnUiThread {
 //                    showError("Ошибка сети: ${e.message}")
 //                }
 //            }
 //        }
-//    }
+//    } -> код ретрофит когда сервер будет сделан раскомментить
 
 
-    private fun showError(message: String) {
-        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-    }
-}
-
-
-//class SubjectsFragment : Fragment() {
-//    private lateinit var adapter: SubjectAdapter
-//    private lateinit var recyclerView: RecyclerView
-//    private lateinit var mainAPI: MainAPI
-//
-//    private fun runOnUiThread(action: () -> Unit) {
-//        if (!isAdded) return
-//        activity?.runOnUiThread(action)
-//    }
-//
-//    override fun onCreateView(
-//        inflater: LayoutInflater, container: ViewGroup?,
-//        savedInstanceState: Bundle?
-//    ): View {
-//        val view = inflater.inflate(R.layout.fragment_subjects, container, false)
-//
-//        // Инициализация UI элементов
-//        recyclerView = view.findViewById(R.id.rview)
-//        val backToHomeButton = view.findViewById<ImageButton>(R.id.back_subject_to_home)
-//        val homeButton = view.findViewById<ImageButton>(R.id.home_subb)
-//        val settingsButton = view.findViewById<ImageButton>(R.id.flow_subb)
-//        val searchButton = view.findViewById<ImageButton>(R.id.search_subb)
-//
-//        // Настройка RecyclerView
-//        adapter = SubjectAdapter { subject ->
-//            Toast.makeText(context, "Выбран: ${subject.name}", Toast.LENGTH_SHORT).show()
-//
-//            // Пример перехода к темам:
-//            // navigateTo(R.id.action_subjectsFragment_to_topicsFragment)
-//        }
-//        recyclerView.layoutManager = LinearLayoutManager(requireContext())
-//        recyclerView.adapter = adapter
-//
-//        // Обработчики нажатий
-//        backToHomeButton.setOnClickListener {
-//            navigateTo(R.id.action_subjectsFragment_to_homeFragment)
-//        }
-//
-//        homeButton.setOnClickListener {
-//            navigateTo(R.id.action_subjectsFragment_to_homeFragment)
-//        }
-//
-//        settingsButton.setOnClickListener {
-//            navigateTo(R.id.action_subjectsFragment_to_settingsFragment)
-//        }
-//
-//        searchButton.setOnClickListener {
-//            navigateTo(R.id.action_subjectsFragment_to_searchFragment)
-//        }
-//
-//        // Настройка Retrofit
-//        val retrofit = Retrofit.Builder()
-//            .baseUrl("http://10.0.2.2:8000/")
-//            .addConverterFactory(GsonConverterFactory.create())
-//            .build()
-//
-//        mainAPI = retrofit.create(MainAPI::class.java)
-//
-//        // Загрузка данных
-//        loadSubjects()
-//
-//        return view
-//    }
-//
-//    private fun navigateTo(actionId: Int) {
-//        view?.findNavController()?.navigate(actionId)
-//    }
-//
-//    private fun getToken(): String? {
-//        return context?.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-//            ?.getString("auth_token", null)
-//    }
-//
-//
-//    private fun loadSubjects() {
-//    }
-//}
-
-
-
-//        val token = getToken() // Получаем токен (см. ниже)
-//            ?: return showError("Требуется авторизация")
-//
-//        CoroutineScope(Dispatchers.IO).launch {
-//            try {
-//                val response = mainAPI.getSubjects(token) // GET /subjects/?auth_token=...
-//                if (response.isSuccessful && !response.body().isNullOrEmpty()) {
-//                    val subjects = response.body()!!
-//                    runOnUiThread {
-//                        adapter.submitList(subjects)
-//                    }
-//                } else {
-//                    runOnUiThread {
-//                        showError("Нет данных или ошибка: ${response.code()}")
-//                    }
-//                }
-//            } catch (e: Exception) {
-//                e.printStackTrace()
-//                runOnUiThread {
-//                    showError("Ошибка сети: ${e.message}")
-//                }
-//            }
-//        }
-
-
-
-//class SubjectsFragment : Fragment() {
-//    private lateinit var adapter: SubjectAdapter
-//    lateinit var binding: FragmentSubjectsBinding
-//
-//    private fun runOnUiThread(action: () -> Unit) {
-//        this ?: return
-//        if (!isAdded) return
-//        activity?.runOnUiThread(action)
-//
-//    }
-//
-//    override fun onCreateView(
-//        inflater: LayoutInflater, container: ViewGroup?,
-//        savedInstanceState: Bundle?): View? {
-//
-//        binding = SubjectsFragmentBinding.inflate(layoutInflater)
-//        setContentView(binding.root)
-//        // Inflate the layout for this fragment
-//        val view = inflater.inflate(R.layout.fragment_subjects, container, false)
-//        val backsubbtohome = view.findViewById<ImageButton>(R.id.back_subject_to_home)
-//        val homefromsubbButton = view.findViewById<ImageButton>(R.id.home_subb)
-//        val settfromsubbButton = view.findViewById<ImageButton>(R.id.flow_subb)
-//        val searchfromsubbButton = view.findViewById<ImageButton>(R.id.search_subb)
-////        val mathSubjectButton = view.findViewById<Button>(R.id.math_subb)
-//
-//        backsubbtohome.setOnClickListener {
-//            view.findNavController()
-//                .navigate(R.id.action_subjectsFragment_to_homeFragment)
-//        }
-//
-//        homefromsubbButton.setOnClickListener {
-//            view.findNavController()
-//                .navigate(R.id.action_subjectsFragment_to_homeFragment)
-//        }
-//
-//        settfromsubbButton.setOnClickListener {
-//            view.findNavController()
-//                .navigate(R.id.action_subjectsFragment_to_settingsFragment)
-//        }
-//
-//        searchfromsubbButton.setOnClickListener {
-//            view.findNavController()
-//                .navigate(R.id.action_subjectsFragment_to_searchFragment)
-//        }
-//
-////        mathSubjectButton.setOnClickListener {
-////            view.findNavController()
-////                .navigate(R.id.action_subjectsFragment_to_mathSubjectsFragment)
-////        }
-//        adapter = SubjectAdapter()
-//        binding.rview.layoutManager = LinearLayoutManager(this)
-//        binding.rview.adapter = adapter
-//        adapter.submitList()
-//
-////        val tv = view.findViewById<TextView>(R.id.trix) //вместо 55 должно быть айди куда показывать
-////        val b = view.findViewById<Button>(R.id.button) //вместо 66 должно быть айди или что-нибудь
-//        //что вызывает показ списка предметов, возможно и типо буттон нужно поменять
-//        //а так же наверное такое стоит наверное писать в верхнем онкреате
-//
-//        val retrofit = Retrofit.Builder()
-//            .baseUrl("http://10.0.2.2:8000/")//тут должна быть ссылка родительская
-//            //типо ссылка постоянная, а в SubjectAPI ее изменяемая часть
-//            .addConverterFactory(GsonConverterFactory.create()).build()
-//
-//        val mainAPI = retrofit.create(MainAPI::class.java)
-//
-//
-//        CoroutineScope(Dispatchers.IO).launch {
-//                val list = mainAPI.getAllItems() // здесь можно без 77
-//                //это типо вызов конкретного предмета, может помочь при выборе учителем предмета
-//                runOnUiThread {
-//                    binding.apply{
-//                        adapter.submitList(list)
-//                    }
-////                    tv.text = subject.get(1).name
-////                    var temp = ""
-////                    for (i in 0..subject.size -1){
-////                        temp += subject.get(i).name + " "
-////                    }
-////                    tv.text = temp
-////                    //цикл
-//                }
-//
-//        }
-//
-//        return view
-//    }
-
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//        setContentView(R.layout.fragment_subjects)
-//
-//        val tv = findViewById<TextView>(R.id.55) //вместо 55 должно быть айди куда показывать
-//        val b = findViewById<Button>(R.id.66) //вместо 66 должно быть айди или что-нибудь
-//        //что вызывает показ списка предметов, возможно и типо буттон нужно поменять
-//        //а так же наверное такое стоит наверное писать в верхнем онкреате
-//
-//        val retrofit = Retrofit.Builder()
-//            .baseUrl("https://")//тут должна быть ссылка родительская
-//            //типо ссылка постоянная, а в SubjectAPI ее изменяемая часть
-//            .addConverterFactory(GsonConverterFactory.create()).build()
-//
-//        val subjectAPI = retrofit.create(SubjectAPI::class.java)
-//
-//        b.setOnClickListener{
-//            CoroutineScope(Dispatchers.IO).launch {
-//                val subject = subjectAPI.getSubjectById(77) // здесь можно без 77
-//                //это типо вызов конкретного предмета, может помочь при выборе учителем предмета
-//                runOnUiThread {
-//                    tv.text = Subject.title
-//
-//                }
-//
-//            }
-//
-//
-//        }
-
-
-//    }
 
 
