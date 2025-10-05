@@ -1,8 +1,9 @@
 from pydantic import BaseModel
 from datetime import datetime, timedelta
-from jose import jwt
+import jwt
+from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
-from typing import Optional
+from typing import List, Optional
 import sqlalchemy as db
 from sqlalchemy.orm import Session
 from server.config import SECRET_KEY, ALGORITHM
@@ -65,6 +66,39 @@ class LoginStep1Response(BaseModel):
 class LoginStep2Response(BaseModel):
     auth_token: str
     message: str = "Login successful"
+class QuizResponse(BaseModel):
+    question: str
+    options: List[str]
+    correctAnswerIndex: int
+
+class TopicResponse(BaseModel):
+    id: int
+    title: str
+    content: str
+    quiz: Optional[QuizResponse] = None
+
+class SubjectResponse(BaseModel):
+    id: int
+    name: str
+    topics: List[TopicResponse]
+class QuizCreate(BaseModel):
+    question: str
+    options: List[str]
+    correctAnswerIndex: int
+
+class TopicCreate(BaseModel):
+    id: int
+    title: str
+    content: str
+    quiz: Optional[QuizCreate] = None
+
+class SubjectCreate(BaseModel):
+    id: int
+    name: str
+    topics: List[TopicCreate]
+
+class SubjectsDataCreate(BaseModel):
+    subjects: List[SubjectCreate]
     
 def verify_password(plain_password: str, hashed_password: str):
     return pwd_context.verify(plain_password, hashed_password)
