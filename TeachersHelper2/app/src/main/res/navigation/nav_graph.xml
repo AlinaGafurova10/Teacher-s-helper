@@ -199,6 +199,10 @@
         android:name="com.hfad.teachershelper.TopicDetailFragment"
         android:label="@string/Text">
 
+        <action
+            android:id="@+id/action_topicDetailFragment_to_quizFragment"
+            app:destination="@id/quizFragment" />
+
         <argument
             android:name="topicId"
             app:argType="integer" />
@@ -215,4 +219,24 @@
             android:id="@+id/action_topicDetailFragment_to_homeFragment"
             app:destination="@id/homeFragment" />
     </fragment>
+    <fragment
+        android:id="@+id/quizFragment"
+        android:name="com.hfad.teachershelper.QuizFragment"
+        android:label="fragment_quiz"
+        tools:layout="@layout/fragment_quiz" >
+        <action
+            android:id="@+id/action_quizFragment_to_topicDetailFragment"
+            app:destination="@id/topicDetailFragment" />
+        <action
+            android:id="@+id/action_quizFragment_to_searchFragment"
+            app:destination="@id/searchFragment" />
+        <action
+            android:id="@+id/action_quizFragment_to_settingsFragment"
+            app:destination="@id/settingsFragment" />
+        <action
+            android:id="@+id/action_quizFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
+    </fragment>
+
+
 </navigation>

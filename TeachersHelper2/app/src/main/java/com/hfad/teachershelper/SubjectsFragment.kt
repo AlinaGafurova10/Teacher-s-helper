@@ -9,21 +9,19 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.Toast
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.hfad.teachershelper.Adapter.SubjectAdapter
+import com.hfad.teachershelper.retrofit.JsonUtils
+import com.hfad.teachershelper.retrofit.JsonUtils.loadSubjectsFromJson
 import com.hfad.teachershelper.retrofit.MainAPI
 import com.hfad.teachershelper.retrofit.Quiz
-import com.hfad.teachershelper.retrofit.Subject
 import com.hfad.teachershelper.retrofit.Topic
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-
 import kotlinx.coroutines.launch
 import org.json.JSONArray
-import org.json.JSONObject
 import retrofit2.Retrofit
 //import com.hfad.teachershelper.databinding.FragmentSubjectsBinding
 import retrofit2.converter.gson.GsonConverterFactory
@@ -58,14 +56,8 @@ class SubjectsFragment : Fragment() {
         // Настройка RecyclerView
         adapter = SubjectAdapter { subject ->
             val bundle = Bundle()
-            bundle.putInt("subjectId", subject.id)  // ← ключ "subjectId"
-
-            findNavController().navigate(
-                R.id.action_subjectsFragment_to_topicsFragment,
-                bundle
-            )
-//            Toast.makeText(context, "Предмет: ${subject.name}", Toast.LENGTH_SHORT).show()
-//            // navigateTo(R.id.action_subjectsFragment_to_topicsFragment)
+            bundle.putInt("subjectId", subject.id)
+            findNavController().navigate(R.id.action_subjectsFragment_to_topicsFragment, bundle)
         }
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
@@ -76,18 +68,11 @@ class SubjectsFragment : Fragment() {
         settingsButton.setOnClickListener { navigateTo(R.id.action_subjectsFragment_to_settingsFragment) }
         searchButton.setOnClickListener { navigateTo(R.id.action_subjectsFragment_to_searchFragment) }
 
-//        // Настройка Retrofit
-//        val retrofit = Retrofit.Builder()
-//            .baseUrl("http://10.0.2.2:8000/") // Локальный сервер (Android Emulator)
-//            .addConverterFactory(GsonConverterFactory.create())
-//            .build() -> код ретрофит когда сервер будет сделан раскомментить
+        // Инициализация Retrofit
+        initializeRetrofit()
 
-//        mainAPI = retrofit.create(MainAPI::class.java) -> код ретрофит когда сервер будет сделан раскомментить
-
-        // Загрузка предметов
-//        loadSubjects() -> код ретрофит когда сервер будет сделан раскомментить
-
-        loadSubjectsFromJson()
+        // Загрузка данных
+        loadSubjectsFromApi()
 
         return view
     }
@@ -96,86 +81,66 @@ class SubjectsFragment : Fragment() {
         view?.findNavController()?.navigate(actionId)
     }
 
-//    private fun getToken(): String? {
-//        return context?.getSharedPreferences("auth", Context.MODE_PRIVATE)
-//            ?.getString("auth_token", null)
-//    }
+    private fun getAuthToken(): String? {
+        return requireContext().getSharedPreferences("auth", Context.MODE_PRIVATE)
+            .getString("auth_token", null)
+    }
 
+    private fun initializeRetrofit() {
+        if (mainAPI == null) {
+            val retrofit = Retrofit.Builder()
+                .baseUrl(MainAPI.BASE_URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+            mainAPI = retrofit.create(MainAPI::class.java)
+        }
+    }
 
-    private fun showError(message: String) {
-        Toast.makeText(context, "Ошибка: $message", Toast.LENGTH_LONG).show()
+    private fun loadSubjectsFromApi() {
+        lifecycleScope.launch {
+            val token = getAuthToken()
+            if (token == null) {
+                // Если нет токена — грузим из локального JSON
+                loadSubjectsFromJson()
+                return@launch
+            }
+
+            try {
+                val response = mainAPI?.getSubjectsJson(token)
+                if (response?.isSuccessful == true) {
+                    val subjectsList = response.body()?.subjects ?: emptyList()
+                    val subjectsToShow = subjectsList // Пропускаем первый элемент
+
+                    runOnUiThread {
+                        adapter.submitList(subjectsToShow)
+                    }
+                } else {
+                    Log.e("API", "Ошибка загрузки: ${response?.code()}")
+                    loadSubjectsFromJson() // fallback
+                }
+            } catch (e: Exception) {
+                Log.e("API", "Исключение при загрузке", e)
+                loadSubjectsFromJson() // fallback
+            }
+        }
     }
 
     private fun loadSubjectsFromJson() {
         try {
-            // Читаем JSON из ресурсов
-            val inputStream = requireContext().resources.openRawResource(R.raw.data)
-            val jsonString = inputStream.bufferedReader().use { it.readText() }
-            inputStream.close()
+            val subjects = JsonUtils.loadSubjectsFromJson(requireContext())
+            val subjectsToShow = subjects.drop(1) // Пропускаем первый и в fallback
 
-            // Парсим JSON вручную или через Gson
-            val jsonObject = JSONObject(jsonString)
-            val subjectsArray = jsonObject.getJSONArray("subjects")
-
-            val subjects = mutableListOf<Subject>()
-
-            for (i in 0 until subjectsArray.length()) {
-                val obj = subjectsArray.getJSONObject(i)
-                val id = obj.getInt("id")
-                val name = obj.getString("name")
-                val topicsArray = obj.getJSONArray("topics")  // из JSONObject предмета
-                val topics: List<Topic> = parseTopics(topicsArray)
-
-                // Темы пока не нужны здесь, но можем их пропустить
-                subjects.add(
-                    Subject(
-                        id,
-                        name,
-                        topics
-                    )
-                ) // Предполагаем, что у тебя есть data class Subject(id: Int, name: String)
-            }
-
-            // Обновляем адаптер в UI потоке
             runOnUiThread {
-                adapter.submitList(subjects)
+                adapter.submitList(subjectsToShow)
             }
-
         } catch (e: Exception) {
-            Log.e("JSON_ERROR", "Ошибка при чтении JSON", e)
-            runOnUiThread {
-                showError("Ошибка загрузки данных: ${e.message}")
-            }
+            Log.e("JSON", "Ошибка загрузки локального JSON", e)
+            showError("Ошибка загрузки данных")
         }
     }
 
-    private fun parseTopics(topicsArray: JSONArray): List<Topic> {
-        val topics = mutableListOf<Topic>()
-
-        for (i in 0 until topicsArray.length()) {
-            val topicObj = topicsArray.getJSONObject(i)
-
-            val id = topicObj.getInt("id")
-            val title = topicObj.getString("title")
-            val content = topicObj.getString("content")
-
-            val quizObj = topicObj.getJSONObject("quiz")
-            val question = quizObj.getString("question")
-            val correctAnswerIndex = quizObj.getInt("correctAnswerIndex")
-
-            // Парсим массив options
-            val optionsArray = quizObj.getJSONArray("options")
-            val options = mutableListOf<String>()
-            for (j in 0 until optionsArray.length()) {
-                options.add(optionsArray.getString(j))
-            }
-
-            val quiz = Quiz(question, options, correctAnswerIndex)
-            val topic = Topic(id, title, content, quiz)
-            topics.add(topic)
-        }
-
-        return topics
+    private fun showError(message: String) {
+        Toast.makeText(context, "Ошибка: $message", Toast.LENGTH_LONG).show()
     }
 }
 //    private fun loadSubjects() {

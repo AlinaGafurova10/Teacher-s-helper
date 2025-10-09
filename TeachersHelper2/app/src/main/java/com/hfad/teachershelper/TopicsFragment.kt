@@ -1,6 +1,8 @@
 package com.hfad.teachershelper
 
+import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -8,6 +10,12 @@ import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
+import androidx.lifecycle.lifecycleScope
+
+import com.hfad.teachershelper.retrofit.Subject
+import com.hfad.teachershelper.retrofit.Topic
+import com.hfad.teachershelper.retrofit.Quiz
+
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
@@ -15,12 +23,19 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.hfad.teachershelper.Adapter.TopicAdapter
 import com.hfad.teachershelper.retrofit.JsonUtils
+import com.hfad.teachershelper.retrofit.MainAPI
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 class TopicsFragment : Fragment() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: TopicAdapter
     private lateinit var textTitle: TextView
+    private var mainAPI: MainAPI? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -37,15 +52,13 @@ class TopicsFragment : Fragment() {
         val settingsButton = view.findViewById<ImageButton>(R.id.flow_themes)
         val searchButton = view.findViewById<ImageButton>(R.id.search_themes)
 
-//        backToSubbButton.setOnClickListener { navigateTo(R.id.action_topicsFragment_to_subjectsFragment) }
         homeButton.setOnClickListener { navigateTo(R.id.action_topicsFragment_to_homeFragment) }
         settingsButton.setOnClickListener { navigateTo(R.id.action_topicsFragment_to_settingsFragment) }
         searchButton.setOnClickListener { navigateTo(R.id.action_topicsFragment_to_searchFragment) }
         backToSubbButton.setOnClickListener {
-            findNavController().popBackStack() // Убирает текущий фрагмент из стека
+            findNavController().popBackStack()
         }
 
-        // Получаем subjectId вручную
         val subjectId = arguments?.getInt("subjectId") ?: -1
         if (subjectId == -1) {
             Toast.makeText(context, "Нет ID предмета", Toast.LENGTH_SHORT).show()
@@ -53,25 +66,17 @@ class TopicsFragment : Fragment() {
             return null
         }
 
-        // Загружаем данные из JSON
-        val subjects = JsonUtils.loadSubjectsFromJson(requireContext())
-        val subject = subjects.find { it.id == subjectId }
+        // Инициализация Retrofit
+        val retrofit = Retrofit.Builder()
+            .baseUrl("http://10.0.2.2:8000/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+        mainAPI = retrofit.create(MainAPI::class.java)
 
-        if (subject == null) {
-            Toast.makeText(context, "Предмет не найден", Toast.LENGTH_SHORT).show()
-            parentFragmentManager.popBackStack()
-            return null
-        }
-
-        // Обновляем заголовок
-        textTitle.text = "Темы по предмету: ${subject.name}"
-
-        // Настройка RecyclerView
+        // Настройка адаптера (создаём заранее)
         adapter = TopicAdapter { topic ->
-            // Переход к деталям — без Directions
             val bundle = Bundle()
             bundle.putInt("topicId", topic.id)
-
             findNavController().navigate(
                 R.id.action_topicsFragment_to_topicDetailFragment,
                 bundle
@@ -80,11 +85,70 @@ class TopicsFragment : Fragment() {
 
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
-        adapter.submitList(subject.topics)
+
+        // Загрузка данных
+        lifecycleScope.launch {
+            val token = getAuthToken()
+            val subjects: List<Subject> = try {
+                if (token != null) {
+                    val response = mainAPI?.getSubjectsJson(token)
+                    if (response?.isSuccessful == true) {
+                        response.body()?.subjects?.map { req ->
+                            Subject(
+                                id = req.id,
+                                name = req.name,
+                                topics = req.topics.map { t ->
+                                    Topic(
+                                        id = t.id,
+                                        title = t.title,
+                                        content = t.content,
+                                        quiz = Quiz(
+                                            question = t.quiz.question,
+                                            options = t.quiz.options,
+                                            correctAnswerIndex = t.quiz.correctAnswerIndex
+                                        )
+                                    )
+                                }
+                            )
+                        } ?: emptyList()
+                    } else {
+                        JsonUtils.loadSubjectsFromJson(requireContext())
+                    }
+                } else {
+                    JsonUtils.loadSubjectsFromJson(requireContext())
+                }
+            } catch (e: Exception) {
+                Log.e("TopicsFragment", "Ошибка загрузки", e)
+                JsonUtils.loadSubjectsFromJson(requireContext())
+            }
+
+            // Ищем предмет
+            val subject = subjects.find { it.id == subjectId }
+
+            if (subject == null) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Предмет не найден", Toast.LENGTH_SHORT).show()
+                    findNavController().popBackStack()
+                }
+                return@launch
+            }
+
+            // Обновляем UI
+            withContext(Dispatchers.Main) {
+                textTitle.text = "Темы по предмету: ${subject.name}"
+                adapter.submitList(subject.topics)
+            }
+        }
 
         return view
     }
+
     private fun navigateTo(actionId: Int) {
         view?.findNavController()?.navigate(actionId)
+    }
+
+    private fun getAuthToken(): String? {
+        return requireContext().getSharedPreferences("auth", Context.MODE_PRIVATE)
+            .getString("auth_token", null)
     }
 }

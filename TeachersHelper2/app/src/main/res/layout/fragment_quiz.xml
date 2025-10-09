@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    >
 
     <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar_details"
+        android:id="@+id/toolbar_quiz"
         android:layout_width="match_parent"
         android:layout_height="75dp"
         android:layout_marginTop="18dp"
@@ -20,7 +22,7 @@
         tools:ignore="ExtraText,MissingConstraints">
 
         <ImageButton
-            android:id="@+id/back_details_to_themes"
+            android:id="@+id/back_quiz"
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:background="#00FFFFFF"
@@ -32,7 +34,7 @@
 
 
         <TextView
-            android:id="@+id/text_details_title"
+            android:id="@+id/text_quiz_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="right"
@@ -45,47 +47,73 @@
 
     </androidx.appcompat.widget.Toolbar>
 
-    <ScrollView
+    <!-- Кнопка "Назад" -->
+<!--    <ImageButton-->
+<!--        android:id="@+id/back_quiz"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:background="?attr/selectableItemBackgroundBorderless"-->
+<!--        app:layout_constraintBottom_toBottomOf="@+id/text_question"-->
+<!--        app:layout_constraintEnd_toEndOf="parent"-->
+<!--        app:layout_constraintStart_toStartOf="parent">-->
+
+<!--    </ImageButton>-->
+<!--        android:src="@drawable/ic_arrow_back"-->
+<!--        android:contentDescription="Назад"
+
+
+<!-     Вопрос -->
+
+    <!-- Варианты ответов -->
+    <TextView
+        android:id="@+id/text_question"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/Text"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/toolbar_quiz" />
 
-        <TextView
-            android:id="@+id/text_topic_content"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="16dp"
-            android:textSize="16sp"
-            android:lineSpacingExtra="4dp"
-            android:scrollbars="vertical"
-            android:fadeScrollbars="false" />
+    <LinearLayout
+        android:id="@+id/options_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toTopOf="@+id/button_check"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/text_question" />
 
-    </ScrollView>
 
-<!--    <ScrollView-->
+
+<!--    <RadioGroup-->
+<!--        android:id="@+id/radio_group_options"-->
 <!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="0dp"-->
-<!--        android:layout_weight="1">-->
+<!--        android:layout_height="wrap_content"-->
+<!--        app:layout_constraintBottom_toTopOf="@+id/button_submit"-->
+<!--        app:layout_constraintEnd_toEndOf="parent"-->
+<!--        app:layout_constraintStart_toStartOf="parent"-->
+<!--        app:layout_constraintTop_toBottomOf="@+id/text_question" />-->
 
-<!--        <TextView-->
-<!--            android:id="@+id/text_topic_content"-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:textSize="16sp"-->
-<!--            android:lineSpacingExtra="4dp"-->
-<!--            android:padding="8dp" />-->
-<!--    </ScrollView>-->
+
+    <!-- Кнопка "Проверить" -->
 
     <Button
-        android:id="@+id/btn_quiz"
+        android:id="@+id/button_check"
         android:layout_width="358dp"
         android:layout_height="wrap_content"
         android:text="@string/check__yourself"
-        android:layout_marginTop="16dp"
         android:textSize="18sp"
         android:layout_gravity="center_horizontal"
         android:textColor="@color/black"
-        app:backgroundTint="#FFE9EF" />
+        app:backgroundTint="#FFE9EF"
+        app:layout_constraintBottom_toTopOf="@+id/nav_view_details"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/nav_view_details"
@@ -147,4 +175,4 @@
 
     </com.google.android.material.bottomnavigation.BottomNavigationView>
 
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

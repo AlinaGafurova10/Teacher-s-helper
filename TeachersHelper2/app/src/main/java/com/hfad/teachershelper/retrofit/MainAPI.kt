@@ -42,9 +42,14 @@ interface MainAPI {
     ): MessageResponse
 
     companion object {
-    //    const val BASE_URL = "http://10.0.2.2:8000/"
-        const val BASE_URL = "//http://127.0.0.1:8000/"
+        const val BASE_URL = "http://10.0.2.2:8000/"
+//        const val BASE_URL = "http://127.0.0.1:8000/"
     }
+
+    @GET("subjects/json")
+    suspend fun getSubjectsJson(
+        @Query("auth_token") token: String
+    ): Response<CreateSubjectsWrapper>
 
 
 //    @FormUrlEncoded
@@ -61,8 +66,8 @@ interface MainAPI {
     @GET("users/me")
     fun getUser(@Header("Authorization") token: String): Call<User>
 
-    @GET("subjects/")
-    suspend fun getSubjects(@Query("auth_token") token: String): Response<List<Subject>>
+//    @GET("subjects/")
+//    suspend fun getSubjects(@Query("auth_token") token: String): Response<List<SubjectRequest>>
 
 //    @GET("subjects/")
 //    fun getSubjects(@Query("auth_token") token: String): Call<List<Subject>>
