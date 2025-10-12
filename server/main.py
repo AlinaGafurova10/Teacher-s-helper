@@ -17,6 +17,10 @@ from openai import *
 from server.quest_for_gpt import *
 from fastapi.responses import JSONResponse
 import json
+from sqlalchemy.sql import text
+import tempfile
+from fastapi.responses import FileResponse
+
 app = FastAPI()
 two_step_auth = TwoStepAuth()
 current_phone = None
@@ -211,23 +215,27 @@ async def chat_with_ai(
 ):
     if auth_token != "zxc":
         raise HTTPException(status_code=401, detail="Неверная аутентификация")
+    
+    # Подготовка данных для IO.net API
     input_data = {
-        "is_sync": chat_request.is_sync,
+        "model": "meta-llama/Llama-3.3-70B-Instruct",
         "messages": [
             {
                 "role": "user",
                 "content": chat_request.message
             }
-        ]
+        ],
+        "temperature": 0.7
     }
     
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Authorization': f'Bearer {API_KEY}'
+        'Authorization': f'Bearer {API_KEY}'  # Замените на ваш IO.net API ключ
     }
     
-    url_endpoint = "https://api.gen-api.ru/api/v1/networks/deepseek-v3"
+    url_endpoint = "https://api.intelligence.io.solutions/api/v1/chat/completions"
+    
     try:
         response = requests.post(
             url_endpoint,
@@ -238,12 +246,17 @@ async def chat_with_ai(
         response.raise_for_status()
         ai_response = response.json()
 
+        # Обработка ответа от IO.net API
         if isinstance(ai_response, dict):
-            if 'response' in ai_response and ai_response['response']:
-                first_response = ai_response['response'][0]
-                if 'choices' in first_response and first_response['choices']:
-                    message = first_response['choices'][0].get('message', {})
-                    return {"response": message.get('content', 'Ответ пуст')}
+            if 'choices' in ai_response and ai_response['choices']:
+                first_choice = ai_response['choices'][0]
+                if 'message' in first_choice:
+                    message_content = first_choice['message'].get('content', 'Ответ пуст')
+                    return {"response": message_content}
+            
+            # Альтернативный вариант структуры ответа
+            if 'message' in ai_response:
+                return {"response": ai_response['message'].get('content', 'Ответ пуст')}
         
         return {"response": "Не удалось обработать ответ от AI"}
         
@@ -259,17 +272,7 @@ async def chat_with_ai(
             status_code=500,
             detail="Внутренняя ошибка сервера"
         )
-   
-
-
-# Добавьте эти эндпоинты в ваш существующий код:
-
-from sqlalchemy.sql import text
-import json
-from typing import Dict, Any, List
-import tempfile
-from fastapi.responses import FileResponse
-
+    
 @app.get("/subjects/all", response_model=List[SubjectResponse])
 def get_all_subjects_with_topics(
     auth_token: str,
