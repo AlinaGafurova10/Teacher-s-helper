@@ -2,4 +2,4 @@
 
 pip install bcrypt==4.0.1 passlib==1.7.4
 
-API_KEY = "sk-EcxgoVSImbFwlmUyyoXz5fiqGRPvr7KdwEVYfPcimNZi2l4uQX9rZZag5EVH"
+API_KEY = "io-v2-eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJvd25lciI6ImU3ZWNjNTllLWFjNTctNDJlYS1hZWEzLTNjN2I5NjAwYjM1MiIsImV4cCI6NDkxMzg0Nzg4Nn0.l0ZwCfOjaLHIW2swEVLLLH011ct6197XIwWuTDJ1g9CsQUAbEYBg3MyccTF-giuF0F8jMAu9Mr1y3KN_wUqkpg"
