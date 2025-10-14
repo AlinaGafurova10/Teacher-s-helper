@@ -1,5 +1,6 @@
 package com.hfad.teachershelper.retrofit
 
+import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Response
 import retrofit2.http.Body
@@ -43,13 +44,16 @@ interface MainAPI {
 
     companion object {
         const val BASE_URL = "http://10.0.2.2:8000/"
-//        const val BASE_URL = "http://127.0.0.1:8000/"
+ //     const val BASE_URL = "http://127.0.0.1:8000/"
     }
 
     @GET("subjects/json")
     suspend fun getSubjectsJson(
         @Query("auth_token") token: String
     ): Response<CreateSubjectsWrapper>
+
+    @GET("subjects/json")
+    suspend fun getSubjectsJsonRaw(@Query("auth_token") token: String): Response<ResponseBody>
 
 
 //    @FormUrlEncoded

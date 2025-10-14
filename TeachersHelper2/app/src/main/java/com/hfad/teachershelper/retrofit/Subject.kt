@@ -15,19 +15,14 @@ data class Topic(
     val id: Int,
     val title: String,
     val content: String,
-    val quiz: Quiz
+    val quiz: List<Quiz> // ← изменено с Quiz на List<Quiz>
 )
 
-// Quiz.kt
 data class Quiz(
     val question: String,
     val options: List<String>,
     val correctAnswerIndex: Int
-) {
-    companion object {
-        val EMPTY = Quiz("", emptyList(), -1)
-    }
-}
+)
 
 //data class Quiz(
 //    val question: String,

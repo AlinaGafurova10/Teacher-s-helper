@@ -1,10 +1,12 @@
 package com.hfad.teachershelper
 
+import android.content.Context
 import androidx.navigation.findNavController
 import com.hfad.teachershelper.retrofit.JsonUtils
 import com.hfad.teachershelper.retrofit.Subject
 import com.hfad.teachershelper.retrofit.Topic
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,11 +15,23 @@ import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import com.google.gson.reflect.TypeToken
+import com.hfad.teachershelper.retrofit.CreateSubjectsRequest
+import com.hfad.teachershelper.retrofit.GsonUtils
+import com.hfad.teachershelper.retrofit.MainAPI
 import com.hfad.teachershelper.retrofit.Quiz
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 
 class TopicDetailFragment : Fragment() {
+
+    private var mainAPI: MainAPI? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -50,45 +64,86 @@ class TopicDetailFragment : Fragment() {
         }
 
         // Загружаем все предметы из локального JSON
-        val subjects: List<Subject> = JsonUtils.loadSubjectsFromJson(requireContext())
+        //val subjects: List<Subject> = JsonUtils.loadSubjectsFromJson(requireContext())
 
-        // Ищем тему по ID среди всех предметов
-        val topic: Topic? = subjects
-            .flatMap { it.topics }
-            .find { it.id == topicId }
+        // Инициализация Retrofit
+        val retrofit = Retrofit.Builder()
+            .baseUrl(MainAPI.BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+        mainAPI = retrofit.create(MainAPI::class.java)
 
-        if (topic == null) {
-            Toast.makeText(context, "Тема не найдена", Toast.LENGTH_SHORT).show()
-            parentFragmentManager.popBackStack()
-            return null
-        }
 
-        // Отображаем контент темы
-        textContent.text = topic.content
-
-        //удалитть потом
-        btnQuiz.setOnClickListener {
-            if (topic.quiz == Quiz.EMPTY || topic.quiz.question.isNullOrBlank()) {
-                Toast.makeText(context, "Викторина недоступна для этой темы", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+        lifecycleScope.launch {
+            val token = getAuthToken()
+            val subjects: List<Subject> = try {
+                if (token != null) {
+                    val response = mainAPI?.getSubjectsJsonRaw(token);
+                    val jsonString = response?.body()?.string()
+                    if (jsonString != null) {
+                        // Парсим вручную через GsonUtils (с поддержкой null → [])
+                        val type = object : TypeToken<CreateSubjectsRequest>() {}.type
+                        val result =
+                            GsonUtils.gson.fromJson<CreateSubjectsRequest>(jsonString, type)
+                        result.subjects
+                    } else {
+                        JsonUtils.loadSubjectsFromJson(requireContext())
+                    }
+                } else {
+                    JsonUtils.loadSubjectsFromJson(requireContext())
+                }
+            } catch (e: Exception) {
+                Log.e("TopicsFragment", "Ошибка загрузки", e)
+                JsonUtils.loadSubjectsFromJson(requireContext())
             }
 
-            val bundle = Bundle().apply {
-                putString("quiz_question", topic.quiz.question)
-                putStringArrayList("quiz_options", ArrayList(topic.quiz.options))
-                putInt("quiz_correct_index", topic.quiz.correctAnswerIndex)
-            }
-            findNavController().navigate(R.id.action_topicDetailFragment_to_quizFragment, bundle)
-        }
+            // Ищем тему по ID среди всех предметов
+            val topic: Topic? = subjects
+                .flatMap { it.topics }
+                .find { it.id == topicId }
 
-        // Кнопка "Проверь себя" — переход к викторине
-        btnQuiz.setOnClickListener {
-            val bundle = Bundle().apply {
-                putString("quiz_question", topic.quiz.question)
-                putStringArrayList("quiz_options", ArrayList(topic.quiz.options))
-                putInt("quiz_correct_index", topic.quiz.correctAnswerIndex)
+            if (topic == null) {
+                Toast.makeText(context, "Тема не найдена", Toast.LENGTH_SHORT).show()
+                parentFragmentManager.popBackStack()
+                return@launch
             }
-            findNavController().navigate(R.id.action_topicDetailFragment_to_quizFragment, bundle)
+
+            // Обновляем UI
+            withContext(Dispatchers.Main) {
+
+                // Отображаем контент темы
+                textContent.text = topic.content
+
+                //удалитть потом
+                btnQuiz.setOnClickListener {
+                    if (topic.quiz.isEmpty()) {
+                        Toast.makeText(
+                            context,
+                            "Викторина недоступна для этой темы",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        return@setOnClickListener
+                    }
+
+                    val bundle = Bundle().apply {
+                        putInt("topicId", topic.id) // ← только ID
+                    }
+                    findNavController().navigate(
+                        R.id.action_topicDetailFragment_to_quizFragment,
+                        bundle
+                    )
+                }
+
+                // Кнопка "Проверь себя" — переход к викторине
+//        btnQuiz.setOnClickListener {
+//            val bundle = Bundle().apply {
+//                putString("quiz_question", topic.quiz.question)
+//                putStringArrayList("quiz_options", ArrayList(topic.quiz.options))
+//                putInt("quiz_correct_index", topic.quiz.correctAnswerIndex)
+//            }
+//            findNavController().navigate(R.id.action_topicDetailFragment_to_quizFragment, bundle)
+//        }
+            }
         }
 
         return view
@@ -96,6 +151,11 @@ class TopicDetailFragment : Fragment() {
 
     private fun navigateTo(actionId: Int) {
         view?.findNavController()?.navigate(actionId)
+    }
+
+    private fun getAuthToken(): String? {
+        return requireContext().getSharedPreferences("auth", Context.MODE_PRIVATE)
+            .getString("auth_token", null)
     }
 }
 

@@ -14,7 +14,10 @@ import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.gson.reflect.TypeToken
 import com.hfad.teachershelper.Adapter.SubjectAdapter
+import com.hfad.teachershelper.retrofit.CreateSubjectsRequest
+import com.hfad.teachershelper.retrofit.GsonUtils
 import com.hfad.teachershelper.retrofit.JsonUtils
 import com.hfad.teachershelper.retrofit.JsonUtils.loadSubjectsFromJson
 import com.hfad.teachershelper.retrofit.MainAPI
@@ -106,7 +109,21 @@ class SubjectsFragment : Fragment() {
             }
 
             try {
-                val response = mainAPI?.getSubjectsJson(token)
+                val response = mainAPI?.getSubjectsJsonRaw(token);
+                val jsonString = response?.body()?.string()
+                if (jsonString != null) {
+                    // Парсим вручную через GsonUtils (с поддержкой null → [])
+                    val type = object : TypeToken<CreateSubjectsRequest>() {}.type
+                    val result = GsonUtils.gson.fromJson<CreateSubjectsRequest>(jsonString, type)
+                    val subjectsToShow = result.subjects
+
+                    runOnUiThread {
+                        adapter.submitList(subjectsToShow)
+                    }
+                } else {
+                    JsonUtils.loadSubjectsFromJson(requireContext())
+                }
+                /*val response = mainAPI?.getSubjectsJson(token)
                 if (response?.isSuccessful == true) {
                     val subjectsList = response.body()?.subjects ?: emptyList()
                     val subjectsToShow = subjectsList // Пропускаем первый элемент
@@ -117,7 +134,7 @@ class SubjectsFragment : Fragment() {
                 } else {
                     Log.e("API", "Ошибка загрузки: ${response?.code()}")
                     loadSubjectsFromJson() // fallback
-                }
+                }*/
             } catch (e: Exception) {
                 Log.e("API", "Исключение при загрузке", e)
                 loadSubjectsFromJson() // fallback

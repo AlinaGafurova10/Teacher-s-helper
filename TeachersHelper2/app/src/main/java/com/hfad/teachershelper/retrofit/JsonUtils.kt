@@ -2,6 +2,7 @@ package com.hfad.teachershelper.retrofit
 import android.content.Context
 import android.util.Log
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.hfad.teachershelper.R
 import org.json.JSONObject
 import com.hfad.teachershelper.retrofit.Subject
@@ -19,61 +20,72 @@ object JsonUtils {
 
     fun loadSubjectsFromJson(context: Context): List<Subject> {
         return try {
-            val jsonString = context.resources.openRawResource(R.raw.data).bufferedReader().use { it.readText() }
-            val jsonObject = JSONObject(jsonString)
-            val subjectsArray = jsonObject.getJSONArray("subjects")
-
-            val subjects = mutableListOf<Subject>()
-
-            for (i in 0 until subjectsArray.length()) {
-                val obj = subjectsArray.getJSONObject(i)
-                val id = obj.getInt("id")
-                val name = obj.getString("name")
-                val topicsArray = obj.getJSONArray("topics")
-                val topics = parseTopics(topicsArray)
-
-                subjects.add(Subject(id, name, topics)) // ← Subject, не SubjectRequest!
-            }
-
-            subjects
+            val json = context.resources.openRawResource(R.raw.data).bufferedReader().use { it.readText() }
+            val type = object : TypeToken<List<Subject>>() {}.type
+            GsonUtils.gson.fromJson(json, type) // ← Используем наш Gson
         } catch (e: Exception) {
-            Log.e("JsonUtils", "Ошибка", e)
-            emptyList()
+            Log.e("JsonUtils", "Ошибка парсинга JSON", e)
+            throw e
         }
     }
 
-    private fun parseTopics(topicsArray: JSONArray): List<Topic> {
-        val topics = mutableListOf<Topic>()
+//    fun loadSubjectsFromJson(context: Context): List<Subject> {
+//        return try {
+//            val jsonString = context.resources.openRawResource(R.raw.data).bufferedReader().use { it.readText() }
+//            val jsonObject = JSONObject(jsonString)
+//            val subjectsArray = jsonObject.getJSONArray("subjects")
+//
+//            val subjects = mutableListOf<Subject>()
+//
+//            for (i in 0 until subjectsArray.length()) {
+//                val obj = subjectsArray.getJSONObject(i)
+//                val id = obj.getInt("id")
+//                val name = obj.getString("name")
+//                val topicsArray = obj.getJSONArray("topics")
+//                val topics = parseTopics(topicsArray)
+//
+//                subjects.add(Subject(id, name, topics)) // ← Subject, не SubjectRequest!
+//            }
+//
+//            subjects
+//        } catch (e: Exception) {
+//            Log.e("JsonUtils", "Ошибка", e)
+//            emptyList()
+//        }
+//    }
 
-        for (i in 0 until topicsArray.length()) {
-            val topicObj = topicsArray.getJSONObject(i)
-
-            val id = topicObj.getInt("id")
-            val title = topicObj.getString("title")
-            val content = topicObj.getString("content")
-
-            // 🔑 Проверяем, есть ли quiz
-            val quiz: Quiz = if (topicObj.isNull("quiz")) {
-                Quiz.EMPTY // ← пустая викторина
-            } else {
-                val quizObj = topicObj.getJSONObject("quiz")
-                val question = quizObj.getString("question")
-                val correctAnswerIndex = quizObj.getInt("correctAnswerIndex")
-
-                val optionsArray = quizObj.getJSONArray("options")
-                val options = mutableListOf<String>()
-                for (j in 0 until optionsArray.length()) {
-                    options.add(optionsArray.getString(j))
-                }
-
-                Quiz(question, options, correctAnswerIndex)
-            }
-
-            topics.add(Topic(id, title, content, quiz))
-        }
-
-        return topics
-    }
+//    private fun parseTopics(topicsArray: JSONArray): List<Topic> {
+//        val topics = mutableListOf<Topic>()
+//
+//        for (i in 0 until topicsArray.length()) {
+//            val topicObj = topicsArray.getJSONObject(i)
+//
+//            val id = topicObj.getInt("id")
+//            val title = topicObj.getString("title")
+//            val content = topicObj.getString("content")
+//
+//            // 🔑 Проверяем, есть ли quiz
+//            val quiz: Quiz = if (topicObj.isNull("quiz")) {
+//                Quiz.EMPTY // ← пустая викторина
+//            } else {
+//                val quizObj = topicObj.getJSONObject("quiz")
+//                val question = quizObj.getString("question")
+//                val correctAnswerIndex = quizObj.getInt("correctAnswerIndex")
+//
+//                val optionsArray = quizObj.getJSONArray("options")
+//                val options = mutableListOf<String>()
+//                for (j in 0 until optionsArray.length()) {
+//                    options.add(optionsArray.getString(j))
+//                }
+//
+//                Quiz(question, options, correctAnswerIndex)
+//            }
+//
+//            topics.add(Topic(id, title, content, quiz))
+//        }
+//
+//        return topics
+//    }
 
 //    private fun parseTopics(topicsArray: JSONArray): List<Topic> {
 //        val topics = mutableListOf<Topic>()

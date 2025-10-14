@@ -21,7 +21,10 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.gson.reflect.TypeToken
 import com.hfad.teachershelper.Adapter.TopicAdapter
+import com.hfad.teachershelper.retrofit.CreateSubjectsRequest
+import com.hfad.teachershelper.retrofit.GsonUtils
 import com.hfad.teachershelper.retrofit.JsonUtils
 import com.hfad.teachershelper.retrofit.MainAPI
 import kotlinx.coroutines.Dispatchers
@@ -68,7 +71,7 @@ class TopicsFragment : Fragment() {
 
         // Инициализация Retrofit
         val retrofit = Retrofit.Builder()
-            .baseUrl("http://10.0.2.2:8000/")
+            .baseUrl(MainAPI.BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
         mainAPI = retrofit.create(MainAPI::class.java)
@@ -88,32 +91,20 @@ class TopicsFragment : Fragment() {
 
         // Загрузка данных
         lifecycleScope.launch {
+
             val token = getAuthToken()
             val subjects: List<Subject> = try {
                 if (token != null) {
-                    val response = mainAPI?.getSubjectsJson(token)
-                    if (response?.isSuccessful == true) {
-                        response.body()?.subjects?.map { req ->
-                            Subject(
-                                id = req.id,
-                                name = req.name,
-                                topics = req.topics.map { t ->
-                                    Topic(
-                                        id = t.id,
-                                        title = t.title,
-                                        content = t.content,
-                                        quiz = Quiz(
-                                            question = t.quiz.question,
-                                            options = t.quiz.options,
-                                            correctAnswerIndex = t.quiz.correctAnswerIndex
-                                        )
-                                    )
-                                }
-                            )
-                        } ?: emptyList()
-                    } else {
-                        JsonUtils.loadSubjectsFromJson(requireContext())
-                    }
+                    val response = mainAPI?.getSubjectsJsonRaw(token);
+                    val jsonString = response?.body()?.string()
+                    if (jsonString != null) {
+                        // Парсим вручную через GsonUtils (с поддержкой null → [])
+                        val type = object : TypeToken<CreateSubjectsRequest>() {}.type
+                        val result = GsonUtils.gson.fromJson<CreateSubjectsRequest>(jsonString, type)
+                        result.subjects
+                        } else {
+                            JsonUtils.loadSubjectsFromJson(requireContext())
+                        }
                 } else {
                     JsonUtils.loadSubjectsFromJson(requireContext())
                 }
