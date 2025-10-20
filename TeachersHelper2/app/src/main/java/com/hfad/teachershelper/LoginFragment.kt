@@ -45,7 +45,7 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
         nextButton = view.findViewById(R.id.okei_to_loginparol)
 
         val retrofit = Retrofit.Builder()
-            .baseUrl("http://10.0.2.2:8000/")
+            .baseUrl(MainAPI.BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 

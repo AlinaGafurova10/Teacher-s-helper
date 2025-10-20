@@ -27,7 +27,7 @@ class RegistrationFragment : Fragment() {
 
     // Retrofit клиент
     private val retrofit = Retrofit.Builder()
-        .baseUrl("http://10.0.2.2:8000/")  // Замените на ваш базовый URL
+        .baseUrl(MainAPI.BASE_URL)  // Замените на ваш базовый URL
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
